@@ -21,17 +21,12 @@ pymysql.connect() принимает все параметры из DB_CONFIG
 Устанавливает соединение по TCP (порт 3306)
 Выполняет авторизацию (логин + пароль)
 Выбирает базу данных 'demo_bd' Возвращает объект соединения (conn)
-    """
+    """"
     try:
-        conn = pymysql.connect(**DB_CONFIG)   # ** распаковывает словарь
-        print("Подключение к базе данных успешно!")
-        return conn
-    except pymysql.Error as e:
-        print("Ошибка подключения к MySQL:")
-        print(f" Код: {e.args[0]}")
-        print(f" Описание: {e.args[1]}")
-        return None
-
+        return pymysql.connect(**DB_CONFIG)
+    except Exception as e:
+        print(json.dumps({"error": f"Ошибка подключения к базе: {str(e)}"}, ensure_ascii=False))
+        sys.exit(1)
 
 def compare_statistics(old_month, new_month):
     """
@@ -88,18 +83,18 @@ def compare_statistics(old_month, new_month):
         conn.commit()        # Сохраняем изменения в базе
         return awarded
         
-    except Exception as e:
-        print("❌ Ошибка при работе скрипта:")
-        print(traceback.format_exc())
+except Exception as e:
+        error_msg = f"Ошибка в compare_statistics: {str(e)}"
+        print(json.dumps({"error": error_msg}, ensure_ascii=False))
         return []
     finally:
         if conn:
-            conn.close()     # Обязательно закрываем соединение
+            conn.close()
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print(json.dumps([]))
+        print(json.dumps({"error": "Неверное количество аргументов."}, ensure_ascii=False))
         sys.exit(1)
     
     result = compare_statistics(sys.argv[1], sys.argv[2])
