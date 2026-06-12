@@ -5,21 +5,18 @@ DB_CONFIG = {
     'host': 'localhost',
     'port': 3306,
     'user': 'demo_bd',
-    'password': '',        
+    'password': '',
     'database': 'demo_bd',
     'charset': 'utf8mb4'
 }
 
 
 def get_rewards():
-    """
-    Возвращает все награды пользователя, сгруппированные по месяцам.
-    """
+    conn = None
     try:
         conn = pymysql.connect(**DB_CONFIG)
         cursor = conn.cursor()
         
-        # Получаем все награды
         cursor.execute("""
             SELECT month, award_name 
             FROM awards 
@@ -27,7 +24,6 @@ def get_rewards():
         """)
         rows = cursor.fetchall()
         
-        # Группируем награды по месяцам
         rewards = {}
         for month, award in rows:
             if month not in rewards:
@@ -35,11 +31,13 @@ def get_rewards():
             if award not in rewards[month]:
                 rewards[month].append(award)
         
-        conn.close()
         return rewards
     except Exception as e:
-        print("Ошибка при получении наград:", e)
+        print(json.dumps({"error": f"Ошибка при получении наград: {str(e)}"}, ensure_ascii=False))
         return {}
+    finally:
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":
