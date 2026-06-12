@@ -2,8 +2,7 @@ import json
 import sys
 
 def compare_statistics(old_month, new_month):
-    # TODO: Получить targets из БД по old_month
-    # Пока заглушка
+    #  Получить targets из БД по old_month
     targets = {
         "target_meeting_deadlines": 75,
         "target_transfer_deadlines": 20
@@ -17,11 +16,11 @@ def compare_statistics(old_month, new_month):
     
     awarded = []
     
-    # Хранитель Дедлайнов
+    
     if stats["current_meeting_deadlines"] >= targets["target_meeting_deadlines"]:
         awarded.append("Хранитель Дедлайнов")
     
-    # Твёрдый срок
+
     if stats["current_transfer_deadlines"] <= targets["target_transfer_deadlines"]:
         awarded.append("Твёрдый срок")
     
