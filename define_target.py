@@ -11,10 +11,12 @@ DB_CONFIG = {
     'charset': 'utf8mb4'
 }
 
-
 def get_connection():
-    """Создаёт подключение к базе данных"""
-    return pymysql.connect(**DB_CONFIG)
+    try:
+        return pymysql.connect(**DB_CONFIG)
+    except Exception as e:
+        print(json.dumps({"error": f"Ошибка подключения: {str(e)}"}, ensure_ascii=False))
+        sys.exit(1)
 
 
 def calculate_next_month(month_str):
