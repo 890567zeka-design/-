@@ -3,68 +3,79 @@ import sys
 import pymysql
 import traceback
 
-# === НАСТРОЙКИ ПОДКЛЮЧЕНИЯ К БАЗЕ ===
+# ====================== НАСТРОЙКИ ПОДКЛЮЧЕНИЯ ======================
+# Все параметры для подключения к MySQL собраны в одном месте. Изменяй здесь, если нужно.
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'demo_bd',
-    'password': '',             # ← Введи сюда свой пароль
-    'database': 'demo_bd',
-    'charset': 'utf8mb4',
-    'port': 3306
+    'host': 'localhost',        # Адрес сервера 
+    'port': 3306,               # Порт MySQL (
+    'user': 'demo_bd',          # Логин пользователя базы
+    'password': '',             # введи свой пароль!
+    'database': 'demo_bd',      # Название базы данных
+    'charset': 'utf8mb4'        # Кодировка для поддержки русского языка
 }
 
+
 def get_connection():
-    """Создаёт и возвращает подключение к базе данных MySQL"""
+    """
+    Создаёт подключение к базе данных MySQL.
+pymysql.connect() принимает все параметры из DB_CONFIG
+Устанавливает соединение по TCP (порт 3306)
+Выполняет авторизацию (логин + пароль)
+Выбирает базу данных 'demo_bd' Возвращает объект соединения (conn)
+    """
     try:
-        return pymysql.connect(**DB_CONFIG)
-    except Exception as e:
-        print("Ошибка подключения к базе:")
-        print(e)
+        conn = pymysql.connect(**DB_CONFIG)   # ** распаковывает словарь
+        print("Подключение к базе данных успешно!")
+        return conn
+    except pymysql.Error as e:
+        print("Ошибка подключения к MySQL:")
+        print(f" Код: {e.args[0]}")
+        print(f" Описание: {e.args[1]}")
         return None
 
 
 def compare_statistics(old_month, new_month):
     """
-    Сравнивает статистику между двумя месяцами и выдаёт награды.
-    Возвращает: список выданных наград
+    Основная функция скрипта.
+    Сравнивает статистику за old_month и new_month и выдаёт награды.
     """
     conn = get_connection()
     if not conn:
         return []
     
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor()   # Курсор — это "указатель" для выполнения SQL-запросов
         
-        # Получаем цели, установленные в предыдущем месяце
+        # 1. Получаем цели, которые были поставлены в предыдущем месяце
         cursor.execute("""
             SELECT target_meeting_deadlines, target_transfer_deadlines 
-            FROM targets WHERE month = %s
+            FROM targets 
+            WHERE month = %s
         """, (old_month,))
         targets = cursor.fetchone()
         
         if not targets:
-            print(f"Цели для {old_month} не найдены")
-            conn.close()
+            print(f" Цели для {old_month} не найдены")
             return []
         
         target_meeting, target_transfer = targets
         
-        # Получаем фактическую статистику за новый месяц
+        # 2. Получаем фактическую статистику за новый месяц
         cursor.execute("""
             SELECT current_meeting_deadlines, current_transfer_deadlines 
-            FROM statistics WHERE month = %s
+            FROM statistics 
+            WHERE month = %s
         """, (new_month,))
         stats = cursor.fetchone()
         
         if not stats:
-            print(f"⚠️ Статистика для {new_month} не найдена")
-            conn.close()
+            print(f"Статистика для {new_month} не найдена")
             return []
         
         current_meeting, current_transfer = stats
         awarded = []
         
-        # Проверка и выдача наград
+        # 3. Проверяем и выдаём награды
         if current_meeting >= target_meeting:
             awarded.append("Хранитель Дедлайнов")
             cursor.execute("INSERT IGNORE INTO awards (month, award_name) VALUES (%s, %s)", 
@@ -75,16 +86,16 @@ def compare_statistics(old_month, new_month):
             cursor.execute("INSERT IGNORE INTO awards (month, award_name) VALUES (%s, %s)", 
                           (new_month, "Твёрдый срок"))
         
-        conn.commit()
+        conn.commit()        # Сохраняем изменения в базе
         return awarded
         
     except Exception as e:
-        print("Ошибка выполнения:")
+        print("❌ Ошибка при работе скрипта:")
         print(traceback.format_exc())
         return []
     finally:
         if conn:
-            conn.close()
+            conn.close()     # Обязательно закрываем соединение
 
 
 if __name__ == "__main__":
