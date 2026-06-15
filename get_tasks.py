@@ -1,4 +1,3 @@
-import json
 import pymysql
 
 DB_CONFIG = {
@@ -11,35 +10,35 @@ DB_CONFIG = {
 }
 
 
+def get_connection():
+    return pymysql.connect(**DB_CONFIG)
+
+
 def get_rewards():
     conn = None
     try:
-        conn = pymysql.connect(**DB_CONFIG)
+        conn = get_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            SELECT month, award_name 
-            FROM awards 
-            ORDER BY month DESC
+            SELECT a.month, t.award_name 
+            FROM awards a
+            JOIN award_types t ON t.id = a.award_type_id
+            ORDER BY a.month DESC
         """)
         rows = cursor.fetchall()
-        
+
         rewards = {}
         for month, award in rows:
             if month not in rewards:
                 rewards[month] = []
             if award not in rewards[month]:
                 rewards[month].append(award)
-        
-        return rewards
+
+        return {"status": "success", "rewards": rewards}
+
     except Exception as e:
-        print(json.dumps({"error": f"Ошибка при получении наград: {str(e)}"}, ensure_ascii=False))
-        return {}
+        return {"error": f"Ошибка при получении наград: {str(e)}"}
     finally:
         if conn:
             conn.close()
-
-
-if __name__ == "__main__":
-    result = get_rewards()
-    print(json.dumps(result, ensure_ascii=False))
