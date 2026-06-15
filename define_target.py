@@ -23,7 +23,7 @@ def calculate_next_month(month_str):
     return f"{month:02d}.{year}"
 
 
-def define_target(month):
+def define_target(user_id, month):
     conn = None
     try:
         conn = get_connection()
@@ -31,8 +31,8 @@ def define_target(month):
 
         cursor.execute("""
             SELECT current_meeting_deadlines, current_transfer_deadlines 
-            FROM statistics WHERE month = %s
-        """, (month,))
+            FROM statistics WHERE user_id = %s AND month = %s
+        """, (user_id, month))
         stats = cursor.fetchone()
 
         if not stats:
@@ -47,12 +47,12 @@ def define_target(month):
         next_month = calculate_next_month(month)
 
         cursor.execute("""
-            INSERT INTO targets (month, target_meeting_deadlines, target_transfer_deadlines)
-            VALUES (%s, %s, %s)
+            INSERT INTO targets (user_id, month, target_meeting_deadlines, target_transfer_deadlines)
+            VALUES (%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE 
                 target_meeting_deadlines = VALUES(target_meeting_deadlines),
                 target_transfer_deadlines = VALUES(target_transfer_deadlines)
-        """, (next_month, target_meeting, target_transfer))
+        """, (user_id, next_month, target_meeting, target_transfer))
 
         conn.commit()
 
@@ -68,3 +68,4 @@ def define_target(month):
     finally:
         if conn:
             conn.close()
+            
