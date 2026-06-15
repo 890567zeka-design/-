@@ -1,4 +1,3 @@
-import json
 import pymysql
 
 DB_CONFIG = {
@@ -15,7 +14,7 @@ def get_connection():
     return pymysql.connect(**DB_CONFIG)
 
 
-def compare_statistics(old_month, new_month):
+def compare_statistics(user_id, old_month, new_month):
     conn = None
     try:
         conn = get_connection()
@@ -24,8 +23,8 @@ def compare_statistics(old_month, new_month):
         # Получаем цели
         cursor.execute("""
             SELECT target_meeting_deadlines, target_transfer_deadlines 
-            FROM targets WHERE month = %s
-        """, (old_month,))
+            FROM targets WHERE user_id = %s AND month = %s
+        """, (user_id, old_month))
         targets = cursor.fetchone()
         if not targets:
             return {"error": "Цели для указанного месяца не найдены"}
@@ -35,8 +34,8 @@ def compare_statistics(old_month, new_month):
         # Получаем статистику
         cursor.execute("""
             SELECT current_meeting_deadlines, current_transfer_deadlines 
-            FROM statistics WHERE month = %s
-        """, (new_month,))
+            FROM statistics WHERE user_id = %s AND month = %s
+        """, (user_id, new_month))
         stats = cursor.fetchone()
         if not stats:
             return {"error": "Статистика для указанного месяца не найдена"}
@@ -47,17 +46,17 @@ def compare_statistics(old_month, new_month):
         # Хранитель Дедлайнов
         if current_meeting >= target_meeting:
             cursor.execute("""
-                INSERT IGNORE INTO awards (month, award_type_id)
-                SELECT %s, id FROM award_types WHERE award_name = 'Хранитель Дедлайнов'
-            """, (new_month,))
+                INSERT IGNORE INTO awards (user_id, month, award_type_id)
+                SELECT %s, %s, id FROM award_types WHERE award_name = 'Хранитель Дедлайнов'
+            """, (user_id, new_month))
             awarded.append("Хранитель Дедлайнов")
 
         # Твёрдый срок
         if current_transfer <= target_transfer:
             cursor.execute("""
-                INSERT IGNORE INTO awards (month, award_type_id)
-                SELECT %s, id FROM award_types WHERE award_name = 'Твёрдый срок'
-            """, (new_month,))
+                INSERT IGNORE INTO awards (user_id, month, award_type_id)
+                SELECT %s, %s, id FROM award_types WHERE award_name = 'Твёрдый срок'
+            """, (user_id, new_month))
             awarded.append("Твёрдый срок")
 
         conn.commit()
