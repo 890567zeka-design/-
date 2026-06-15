@@ -14,7 +14,7 @@ def get_connection():
     return pymysql.connect(**DB_CONFIG)
 
 
-def get_rewards():
+def get_rewards(user_id):
     conn = None
     try:
         conn = get_connection()
@@ -24,8 +24,9 @@ def get_rewards():
             SELECT a.month, t.award_name 
             FROM awards a
             JOIN award_types t ON t.id = a.award_type_id
+            WHERE a.user_id = %s
             ORDER BY a.month DESC
-        """)
+        """, (user_id,))
         rows = cursor.fetchall()
 
         rewards = {}
